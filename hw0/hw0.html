@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<style>
+#heading{
+	position: absolute;
+	text-align: center;
+	width: 100vw;
+}
+</style>
+</head>
+<body>
+
+<div id='heading'>
+<h1 style=color:pink>launch the train by pressing the button</h1>
+<button id='toggle'> Press </button>
+</div>
+
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+
+<script>
+$('#toggle').click(
+function() {
+	axes.material.visible = ! axes.material.visible;
+	dt *= -1;
+	});
+
+<!-- my script
+var renderer, camera, scene, train;
+var axes, angle = 0, dt = 0.5;
+
+init();
+animate();
+
+function init(){
+	clock = new THREE.Clock();
+	renderer = new THREE.WebGLRenderer ({antialias: true});
+	renderer.setSize (window.innerWidth, window.innerHeight);
+	renderer.setClearColor (0x888888);
+	document.body.appendChild (renderer.domElement);
+	
+	camera = new THREE.PerspectiveCamera (50, window.innerWidth/window.innerHeight, 1, 10000);
+	//camera.position.z = 50;
+	camera.position.set (100, 100, 100);
+	var controls = new THREE.OrbitControls (camera, renderer.domElement);
+	
+	scene = new THREE.Scene();
+	var grid = new THREE.GridHelper (200, 20, 'red', 'white');
+	scene.add (grid);
+	
+	axes = new THREE.AxesHelper (15);
+	scene.add (axes);
+	
+	train = new THREE.Mesh (new THREE.BoxGeometry (20,20,60), new THREE.MeshNormalMaterial());
+	scene.add (train);
+}
+
+function animate(){
+	var radius = 50;
+	
+	train.position.set (radius* Math.cos(angle), 20, radius* Math.sin(angle));
+	train.rotation.y = -angle;
+	
+	
+	angle -= 0.10472*dt;
+	
+	//console.log (clock.getDelta());
+	renderer.render (scene, camera);
+	requestAnimationFrame (animate);
+}
+-->
+</script>
+
+</body>
+
+</html>
