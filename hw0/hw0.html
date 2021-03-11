@@ -14,8 +14,10 @@
 <body>
 
 <div id='heading'>
-<h1 style=color:pink>launch the train by pressing the button</h1>
-<button id='toggle'> Press </button>
+<h1 style=color:pink>control the train by pressing the buttons below</h1>
+<button id='toggle1'> turn around </button>
+<button id='toggle2'> stop/launch </button>
+<button id='toggle3'> show axes </button>
 </div>
 
 <script src="https://threejs.org/build/three.min.js"></script>
@@ -23,15 +25,27 @@
 <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
 
 <script>
-$('#toggle').click(
+$('#toggle1').click(
+function() {
+	temp *= -1;
+  dt = temp;
+});
+
+$('#toggle2').click(
+function() {
+  if(dt == temp || dt == -temp)
+  	dt = 0;
+  else
+  	dt = temp;
+});
+
+$('#toggle3').click(
 function() {
 	axes.material.visible = ! axes.material.visible;
-	dt *= -1;
-	});
-
+});
 <!-- my script
 var renderer, camera, scene, train;
-var axes, angle = 0, dt = 0.5;
+var axes, angle = 0, temp = 0.2,dt = temp;
 
 init();
 animate();
