@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <style>
+        #info {
+            position: absolute;
+            top: 0px;
+            width: 100%;
+            font-family: Monospace;
+            font-size: 20px;
+            padding: 5px;
+            text-align: center;
+            color: #ffff00
+        }
+
+        body {
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<div id='info'>
+    <br>hw1:Game Physics<br>
+    <br>Sound, BGM, and Collision<br><br>
+    with BGM
+    <button id='dimmer'>dimmer</button><br>
+    <button id="play" style="width:20%">Play</button>
+</div>
+<audio id="collisionsound" style="display:none">
+    <source src="collision.wav" type='audio/wav'>
+</audio>
+<audio id="soundtrack" autoplay loop style="display:none">
+    <source src="KennyG.mp3" type='audio/mp3'>
+</audio>
+
+<script src="https://threejs.org/build/three.min.js"></script>
+<script src="https://threejs.org/examples/js/controls/OrbitControls.js"></script>
+<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+<script>
+<!--my script
+var camera, scene, renderer;
+var puck;
+var walls = [], pucks = [], lights = [];
+var clock = new THREE.Clock();
+var collisionSound, soundTrack;
+var isPaused = true;
+var isDimming = false, soundVal = 1.0, sign = 1.0;
+var radius = 8;
+$('#dimmer').click(function () { toggle(); });
+
+//類別設置
+class Wall {
+    constructor(x, z, deg, mesh) {
+        this.x = x;
+        this.z = z;
+        this.mesh = mesh;
+        this.mesh.rotation.y = deg * Math.PI / 180;
+        this.mesh.position.set(x, 10, z);
+        scene.add(this.mesh);
+    }
+}
+class Puck {
+    constructor(pos, vel, mesh) {
+        this.pos = pos;
+        this.vel = vel;
+        this.mesh = mesh;
+        scene.add(this.mesh);
+    }
+}
+//類別設置
+
+//puck撞到wall的處理
+function collideWithWalls(pos, vel) {
+    var colliX = 132.5;
+    var colliZ = 86;
+    if (pos.x > colliX) {
+        vel.x *= -1;
+        pos.x = colliX;
+        collisionSound.play();
+    }
+    if (pos.x < -colliX) {
+        vel.x *= -1;
+        pos.x = -colliX;
+        collisionSound.play();
+    }
+    if (pos.z > colliZ) {
+        vel.z *= -1;
+        pos.z = colliZ;
+        collisionSound.play();
+    }
+    if (pos.z < -colliZ) {
+        vel.z *= -1;
+        pos.z = -colliZ;
+        collisionSound.play();
+    }
+}
+//puck撞到wall的處理
+
+//puck撞到puck的處理
+function collideWithPucks(puck1, puck2) {
+    if (checkPuckCollision(puck1, puck2)) {
+        fixPuckPlacement(puck1, puck2);
+        collisionSound.play();
+        var dist = distanceFrom(puck1, puck2);
+        var xDistance = puck2.pos.x - puck1.pos.x;
+        var zDistance = puck2.pos.z - puck1.pos.z;
+        var collision = new THREE.Vector3(xDistance, 0, zDistance);
+        collision = collision.divideScalar(dist);
+        var puck1Product = collision.dot(puck1.vel);
+        var puck2Product = collision.dot(puck2.vel);
+        var puck1Momentum = puck2Product;
+        var puck2Momentum = puck1Product;
+        var puck1divisor = puck1Momentum - puck1Product;
+        var puck2divisor = puck2Momentum - puck2Product;
+        collision = collision.multiplyScalar(puck1divisor);
+        puck1.vel = puck1.vel.add(collision);
+        //reset collision//
+        collision = new THREE.Vector3(xDistance, 0, zDistance);
+        collision = collision.divideScalar(dist);
+        collision = collision.multiplyScalar(puck2divisor);
+        puck2.vel = puck2.vel.add(collision);
+    }
+}
+//puck撞到puck的處理
+
+//檢查puck之間是否有相撞
+function checkPuckCollision(puck1, puck2) {
+    var xDistance = puck2.pos.x - puck1.pos.x;
+    var yDistance = puck2.pos.z - puck1.pos.z;
+    var distanceBetween = Math.sqrt((xDistance * xDistance) + (yDistance * yDistance));
+    var sumOfRadius = radius * 2;
+    if (distanceBetween < sumOfRadius)
+        return true;
+    else
+        return false;
+}
+//檢查puck之間是否有相撞
+
+//Ball-Ball 碰撞位置修正//
+function fixPuckPlacement(puck1, puck2) {
+    var xDistance = puck2.pos.x - puck1.pos.x;
+    var zDistance = puck2.pos.z - puck1.pos.z;
+    var t = new THREE.Vector3(xDistance, 0, zDistance);
+    t = t.normalize();
+    var dist = distanceFrom(puck1, puck2);
+    var d = 2 * radius - dist;
+    t.multiplyScalar(d);
+    t.divideScalar(2);
+    puck1.pos.sub(t);
+    puck2.pos.add(t);
+}
+//Ball-Ball 碰撞位置修正//
+
+//計算puck_a與puck_b之間的距離
+function distanceFrom(a, b) {
+    return Math.sqrt((a.pos.x - b.pos.x) * (a.pos.x - b.pos.x) + (a.pos.z - b.pos.z) * (a.pos.z - b.pos.z));
+}
+//計算puck_a與puck_b之間的距離
+
+//Mesh設定
+function buildWallMesh(length) {
+    let wallMesh = new THREE.Mesh(new THREE.BoxGeometry(length, 40, 10), new THREE.MeshPhongMaterial({ transparent: true, opacity: 0.7 }));
+    return wallMesh;
+}
+
+function buildPuckMesh(mycolor) {
+    puckMesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 8, 128), new THREE.MeshPhongMaterial({ color: mycolor }));
+    //puckMesh.material.color = mycolor;
+    return puckMesh;
+}
+//Mesh設定
+
+/*
+function getRandomColor() {
+    var letters = '0123456789ABCDEF';
+    var color = '#';
+    for (var i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+*/
+
+$('#play').click(function () {
+    isPaused = !isPaused;
+    if (isPaused) {
+        $('#play').text('Play')
+        soundTrack.pause()
+    } else {
+        $('#play').text('Pause')
+        soundTrack.play()
+    }
+});
+
+
+init();
+animate();
+
+function toggle() {
+    isDimming = !isDimming;
+    sign = isDimming ? -1 : 1;
+    // console.log (isDimming);
+}
+
+function init() {
+    collisionSound = document.getElementById('collisionsound');
+    soundTrack = document.getElementById('soundtrack');
+
+    scene = new THREE.Scene();
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x888888);
+    document.body.appendChild(renderer.domElement);
+
+    camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+    camera.position.set(0, 250, 400);
+    let controls = new THREE.OrbitControls(camera, renderer.domElement);
+    ////////////////////////////////////////////////////////
+
+    //puck設置
+    let puckMesh = buildPuckMesh(0xff0000);
+    let speed = 100;
+    let puck = new Puck(new THREE.Vector3(1, 1, 1), new THREE.Vector3(speed * Math.random(), 0, speed * Math.random()), puckMesh);
+    pucks.push(puck);
+    puckMesh = buildPuckMesh(0xf6ff00);
+    puck = new Puck(new THREE.Vector3(0, 1, 0), new THREE.Vector3(speed * Math.random(), 0, speed * Math.random()), puckMesh);
+    //把pucks[0]和pucks[1]的初始位置設很近，可以確定fixPuckPlacement正常運作
+    pucks.push(puck);
+    puckMesh = buildPuckMesh(0x00ff08);
+    puck = new Puck(new THREE.Vector3(speed * Math.random(), 1, speed * Math.random()), new THREE.Vector3(0, 0, 0), puckMesh);
+    pucks.push(puck);
+    puckMesh = buildPuckMesh(0x00d0ff);
+    puck = new Puck(new THREE.Vector3(speed * Math.random(), 1, speed * Math.random()), new THREE.Vector3(-1 * speed * Math.random(), 0, speed * Math.random()), puckMesh);
+    pucks.push(puck);
+    puckMesh = buildPuckMesh(0x7700ff);
+    puck = new Puck(new THREE.Vector3(speed * Math.random(), 1, speed * Math.random()), new THREE.Vector3(speed * Math.random(), 0, -1 * speed * Math.random()), puckMesh);
+    pucks.push(puck);
+    //puck設置
+    for (let i = 0; i < pucks.length; i++) {
+        let color = new THREE.Color(pucks[i].mesh.material.color);
+        lights[i] = new THREE.PointLight(color, 1, 100);
+        lights[i].position.set(0, 0, 200);
+        //lights.push(light);
+        scene.add(lights[i]);
+    }
+
+    //Point Light和Ambient Light的設置與他們各別的光源indicator
+    var pointLightSource = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 20, 4), new THREE.MeshPhongMaterial({ transparent: true, opacity: 1 }));
+    var ambientLightSource = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 20, 128), new THREE.MeshPhongMaterial({ transparent: true, opacity: 1 }));
+    var pointLight = new THREE.PointLight(0xffffff, 1, 1000);
+    pointLight.position.set(0, 200, 0);
+    pointLightSource.position.copy(pointLight.position);
+    scene.add(pointLight);
+    //scene.add(pointLightSource);
+    var ambientLight = new THREE.AmbientLight(0x000000);
+    ambientLight.position.set(-80, 100, -80);
+    ambientLightSource.position.copy(ambientLight.position);
+    scene.add(ambientLight);
+    //scene.add(ambientLightSource);
+    //Point Light和Ambient Light的設置與他們各別的光源indicator
+
+    //floor設置
+    var cubeGeometry = new THREE.BoxGeometry(300, 10, 210);
+    var cubeMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, transparent: true, opacity: 1 });
+    cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cube.position.set(0, -4, 0);
+    scene.add(cube);
+    //floor設置
+
+    //wall設置
+    let wallMesh = buildWallMesh(300);
+    let wall = new Wall(0, 100, 0, wallMesh);
+    walls.push(wall);
+    wallMesh = buildWallMesh(300);
+    wall = new Wall(0, -100, 0, wallMesh);
+    walls.push(wall);
+    wallMesh = buildWallMesh(210);
+    wall = new Wall(145, 0, 90, wallMesh);
+    walls.push(wall);
+    wallMesh = buildWallMesh(210);
+    wall = new Wall(-145, 0, 90, wallMesh);
+    walls.push(wall);
+    //wall設置
+}
+
+function animate() {
+    var dt = 0.02;
+    for (let i = 0; i < pucks.length; i++) {
+        var tmp = pucks[i].vel.clone();
+        tmp.multiplyScalar(dt);
+        pucks[i].pos.add(tmp);
+        //puck撞wall
+        collideWithWalls(pucks[i].pos, pucks[i].vel);
+        //puck撞wall
+        for (let j = i + 1; j < pucks.length; j++) {
+            //puck撞puck
+            collideWithPucks(pucks[i], pucks[j]);
+            //puck撞puck
+        }
+        lights[i].position.copy(pucks[i].pos);
+        lights[i].position.y += 10;
+        pucks[i].mesh.position.copy(pucks[i].pos);
+    }
+    requestAnimationFrame(animate);
+    render();
+
+}
+
+function render() {
+
+    renderer.render(scene, camera);
+
+}
+
+        -->
+</script>
+
+</body>
+
+</html>
